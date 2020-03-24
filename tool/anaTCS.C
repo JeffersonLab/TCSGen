@@ -850,8 +850,10 @@ for (Int_t i=0;i<nevent;i++) {
       
 	if (17.5 < s && s < 19.5){
 	  if (6 < Q2 && Q2 < 7){
-	    hcrs_t_stat->Fill(t,crs_BH*psf*psf_flux*flux_factor/nevent*acc*acc_cut);
-	    hcrs_t->Fill(t,crs_BH*psf*psf_flux*flux_factor/nevent/0.2);
+// 	    hcrs_t_stat->Fill(t,crs_BH*psf*psf_flux*flux_factor/nevent*acc*acc_cut);
+// 	    hcrs_t->Fill(t,crs_BH*psf*psf_flux*flux_factor/nevent/0.2);
+	    hcrs_t_stat->Fill(t,crs_BH*psf*flux_factor/nevent*acc*acc_cut);
+	    hcrs_t->Fill(t,crs_BH*psf*flux_factor/nevent/0.2);	    
 	  }
 	}
 	
