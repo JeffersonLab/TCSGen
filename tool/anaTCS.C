@@ -481,33 +481,43 @@ TFile *file=new TFile(input_filename.c_str());
 else cout << "open file " << input_filename << endl;
 TTree *Ttr1 = (TTree*) file->Get("tr1");
 
-Double_t Q2,t_t,psf,psf_flux,crs_BH,flux_factor;
-Double_t em_px,em_py,em_pz,ep_px,ep_py,ep_pz,prot_px,prot_py,prot_pz;
-// TLorentzVector *L_em,*L_ep,*L_prot;
+// Double_t Q2,t_t,psf,psf_flux,crs_BH,flux_factor;
+// Double_t em_px,em_py,em_pz,ep_px,ep_py,ep_pz,prot_px,prot_py,prot_pz;
+// Ttr1->SetBranchAddress("Q2",&Q2);
+// Ttr1->SetBranchAddress("t",&t_t);
+// Ttr1->SetBranchAddress("psf",&psf);
+// Ttr1->SetBranchAddress("psf_flux",&psf_flux);
+// Ttr1->SetBranchAddress("crs_BH",&crs_BH);
+// Ttr1->SetBranchAddress("flux_factor",&flux_factor);
+// Ttr1->SetBranchAddress("em_px",&em_px);
+// Ttr1->SetBranchAddress("em_py",&em_py);
+// Ttr1->SetBranchAddress("em_pz",&em_pz);
+// Ttr1->SetBranchAddress("ep_px",&ep_px);
+// Ttr1->SetBranchAddress("ep_py",&ep_py);
+// Ttr1->SetBranchAddress("ep_pz",&ep_pz);
+// Ttr1->SetBranchAddress("prot_px",&prot_px);
+// Ttr1->SetBranchAddress("prot_py",&prot_py);
+// Ttr1->SetBranchAddress("prot_pz",&prot_pz);
+
+Double_t Eg,Q2,t_t,psf,flux_factor,crs_BH,crs_INT;
+TLorentzVector *L_em,*L_ep,*L_prot;
+Ttr1->SetBranchAddress("Eg",&Eg);
 Ttr1->SetBranchAddress("Q2",&Q2);
 Ttr1->SetBranchAddress("t",&t_t);
 Ttr1->SetBranchAddress("psf",&psf);
-Ttr1->SetBranchAddress("psf_flux",&psf_flux);
-Ttr1->SetBranchAddress("crs_BH",&crs_BH);
 Ttr1->SetBranchAddress("flux_factor",&flux_factor);
-// Ttr1->SetBranchAddress("L_em",&L_em);
-// Ttr1->SetBranchAddress("L_ep",&L_ep);
-// Ttr1->SetBranchAddress("L_prot",&L_prot);
-Ttr1->SetBranchAddress("em_px",&em_px);
-Ttr1->SetBranchAddress("em_py",&em_py);
-Ttr1->SetBranchAddress("em_pz",&em_pz);
-Ttr1->SetBranchAddress("ep_px",&ep_px);
-Ttr1->SetBranchAddress("ep_py",&ep_py);
-Ttr1->SetBranchAddress("ep_pz",&ep_pz);
-Ttr1->SetBranchAddress("prot_px",&prot_px);
-Ttr1->SetBranchAddress("prot_py",&prot_py);
-Ttr1->SetBranchAddress("prot_pz",&prot_pz);
+Ttr1->SetBranchAddress("crs_BH",&crs_BH);
+Ttr1->SetBranchAddress("crs_INT",&crs_INT);
+Ttr1->SetBranchAddress("L_em",&L_em);
+Ttr1->SetBranchAddress("L_ep",&L_ep);
+Ttr1->SetBranchAddress("L_prot",&L_prot);
+
 
 Int_t nevent = (Int_t)Ttr1->GetEntries();
 Int_t nselected = 0;
 cout << "nevent " << nevent << endl;
 
-  Double_t cov= 1e-12 * 1e-24; //pb to cm2 coversion
+  Double_t cov= 1e-12 * 1e-24; //pb to cm2 conversion
   Double_t br = 1.;
   Double_t eff = 0.85;
   Double_t lumi, time;
@@ -535,8 +545,8 @@ for (Int_t i=0;i<nevent;i++) {
 
 //     cout << i << "\r"; 
     
-//     if (i<10)   cout << Q2 << " " << t_t << " " << psf << " " << psf_flux << " " << crs_BH << " " << flux_factor << " " << L_em->M() << " " << L_ep->M() << " " << L_prot->M() << endl;
-    if (i<10)   cout << Q2 << " " << t_t << " " << psf << " " << psf_flux << " " << crs_BH << " " << flux_factor << " " << em_px<< " " <<em_py<< " " <<em_pz<< " " <<ep_px<< " " <<ep_py<< " " <<ep_pz<< " " <<prot_px<< " " <<prot_py<< " " <<prot_pz <<  endl;
+    if (i<10)   cout << Eg << " " << Q2 << " " << t_t << " " << psf << " " << flux_factor  << crs_BH << " "  << crs_INT << " " << " " << L_em->M() << " " << L_ep->M() << " " << L_prot->M() << endl;
+//     if (i<10)   cout << Q2 << " " << t_t << " " << psf << " " << psf_flux << " " << crs_BH << " " << flux_factor << " " << em_px<< " " <<em_py<< " " <<em_pz<< " " <<ep_px<< " " <<ep_py<< " " <<ep_pz<< " " <<prot_px<< " " <<prot_py<< " " <<prot_pz <<  endl;
     
     
     Double_t id = i;
@@ -565,11 +575,11 @@ for (Int_t i=0;i<nevent;i++) {
       
       yescounter++;      
 
-//       TLorentzVector pr=*L_prot,e=*L_em,p=*L_ep;
-      TLorentzVector e,p,pr;
-      e.SetXYZM(em_px,em_py,em_pz,0.000511);
-      p.SetXYZM(ep_px,ep_py,ep_pz,0.000511);      
-      pr.SetXYZM(prot_px,prot_py,prot_pz,0.938);
+      TLorentzVector pr=*L_prot,e=*L_em,p=*L_ep;
+//       TLorentzVector e,p,pr;
+//       e.SetXYZM(em_px,em_py,em_pz,0.000511);
+//       p.SetXYZM(ep_px,ep_py,ep_pz,0.000511);      
+//       pr.SetXYZM(prot_px,prot_py,prot_pz,0.938);
       
       double pr_mom=pr.P(),e_mom=e.P(),p_mom=p.P();
       double pr_theta=pr.Theta(),e_theta=e.Theta(),p_theta=p.Theta();
@@ -784,7 +794,8 @@ for (Int_t i=0;i<nevent;i++) {
 // 	cout << pr_theta*DEG << " " << pr_phi*DEG << " " << p_theta*DEG << " " << p_phi*DEG << " " << e_theta*DEG << " " << e_phi*DEG << endl;
   
       weight[0]=1;
-      weight[1]=crs_BH*psf*psf_flux*flux_factor;
+//       weight[1]=crs_BH*psf*psf_flux*flux_factor;
+      weight[1]=crs_BH*psf*flux_factor;      
       weight[2]=weight[1]*acc;
       weight[3]=weight[2]*acc_cut;
       weight[4]=weight[3]*overall_NOpsf;      
