@@ -499,8 +499,8 @@ TTree *Ttr1 = (TTree*) file->Get("tr1");
 // Ttr1->SetBranchAddress("prot_py",&prot_py);
 // Ttr1->SetBranchAddress("prot_pz",&prot_pz);
 
-Double_t Eg,Q2,t_t,psf,flux_factor,crs_BH,crs_INT;
-TLorentzVector *L_em,*L_ep,*L_prot;
+double Eg,Q2,t_t,psf,flux_factor,crs_BH,crs_INT;
+TLorentzVector *L_em=0,*L_ep=0,*L_prot=0;
 Ttr1->SetBranchAddress("Eg",&Eg);
 Ttr1->SetBranchAddress("Q2",&Q2);
 Ttr1->SetBranchAddress("t",&t_t);
@@ -543,7 +543,7 @@ for (Int_t i=0;i<nevent;i++) {
  
     Ttr1->GetEntry(i);  
 
-//     cout << i << "\r"; 
+    cout << i << "\r"; 
     
     if (i<10)   cout << Eg << " " << Q2 << " " << t_t << " " << psf << " " << flux_factor  << crs_BH << " "  << crs_INT << " " << " " << L_em->M() << " " << L_ep->M() << " " << L_prot->M() << endl;
 //     if (i<10)   cout << Q2 << " " << t_t << " " << psf << " " << psf_flux << " " << crs_BH << " " << flux_factor << " " << em_px<< " " <<em_py<< " " <<em_pz<< " " <<ep_px<< " " <<ep_py<< " " <<ep_pz<< " " <<prot_px<< " " <<prot_py<< " " <<prot_pz <<  endl;
@@ -575,6 +575,7 @@ for (Int_t i=0;i<nevent;i++) {
       
       yescounter++;      
 
+// 	 TLorentzVector *pr=L_prot,*e=L_em,*p=L_ep;
       TLorentzVector pr=*L_prot,e=*L_em,p=*L_ep;
 //       TLorentzVector e,p,pr;
 //       e.SetXYZM(em_px,em_py,em_pz,0.000511);
@@ -605,12 +606,12 @@ for (Int_t i=0;i<nevent;i++) {
        acc_positron_forwardangle=hacceptance_positive_forwardangle->GetBinContent(hacceptance_positive_forwardangle->FindBin(p_theta*DEG,p_mom));
        acc_proton_forwardangle=hacceptance_positive_forwardangle->GetBinContent(hacceptance_positive_forwardangle->FindBin(pr_theta*DEG,pr_mom));
        
-       if ( (acc_electron_forwardangle>0 && e_mom < 4.9) || (acc_positron_forwardangle>0 && p_mom < 4.9) ) {}
-       else {acc_positron = 0 ; acc_electron = 0;}//cut on at least one lepton forward can use CC	 
+//        if ( (acc_electron_forwardangle>0 && e_mom < 4.9) || (acc_positron_forwardangle>0 && p_mom < 4.9) ) {}
+//        else {acc_positron = 0 ; acc_electron = 0;}//cut on at least one lepton forward can use CC	 
 //        if ( acc_electron_largeangle > 0 && acc_positron_largeangle > 0) {acc_positron=0; acc_electron=0;} //cut away two lepton in largeangle only   
 //        if ( (acc_positron_largeangle>0 && acc_electron_forwardangle>0 && e_mom > 5.) || (acc_electron_largeangle>0 && acc_positron_forwardangle>0 && p_mom > 5.) ||  (acc_positron_forwardangle >0 && p_mom>5. && acc_electron_forwardangle>0 && e_mom > 5.) ) {acc_positron=0; acc_electron=0;} //cut away forward lepton exceed CC limit       
        if (acc_proton_largeangle > 0 && pr_mom > 2.0)  acc_proton=0; //cut away 2.0 at largeangle  for proton
-       if (acc_proton_forwardangle > 0 && pr_mom > 4.4)  acc_proton=0; //cut away 4.4 at forwardangel for proton
+       if (acc_proton_forwardangle > 0 && pr_mom > 4.5)  acc_proton=0; //cut away 4.4 at forwardangle for proton
        
        if (acc_electron_forwardangle>0) res_index_electron=0;
        if (acc_electron_largeangle  >0) res_index_electron=1;
