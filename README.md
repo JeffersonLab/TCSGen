@@ -33,3 +33,4 @@ cross section calculation, it uses that grid.
 - tLim          The t_Max value in GeV
 - EgMin         Photon energy minimum
 - EgMax         Photon energy maximum
+- Fermi         Add Fermi momentum to target nucleon

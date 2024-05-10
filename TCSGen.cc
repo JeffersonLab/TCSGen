@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
     int seed;
     double vz_max;
     double vz_min;
+    bool isFermi;
     
     for( map<std::string, std::string>::iterator it =  m_Settings.begin(); it!= m_Settings.end(); it++ ){
     
@@ -91,6 +92,8 @@ int main(int argc, char** argv) {
             vz_max = atof(val.c_str());
         }else if( key.compare("vzMin") == 0 ){
             vz_min = atof(val.c_str());
+        }else if (key.compare("Fermi") == 0) {
+            isFermi = atof(val.c_str());
         }
         
     }
@@ -105,6 +108,7 @@ int main(int argc, char** argv) {
     cout << "vz_max = " << vz_max << endl;
     cout << "vz_min = " << vz_min << endl;
     cout<<"IsLund = "<<isLund<<endl;
+    cout<<"IsFermi = "<<isFermi<<endl;
     
     cout<<"**************************************************"<<endl;
     cout<<"*******"<<" RandomSeedActuallyUsed: "<<seed<<" *******"<<endl;
@@ -143,11 +147,15 @@ int main(int argc, char** argv) {
     TH2D *h_ph_h_ph_cm1 = new TH2D("h_ph_h_ph_cm1", "", 200, 0., 360., 200, 0., 360.);
     TH2D *h_th_g_th_cm1 = new TH2D("h_th_g_th_cm1", "", 200, 0., 180., 200, 0., 180.);
 
+    TF1 *f_FermiDistr = new TF1("f_FermiDistr", Fermi_Distribution, 0., 1, 0);
+    TH1D *h_P_Fermi1 = new TH1D("h_P_Fermi1", "", 200, 0., 1.05);
+
     //================= Definition of Tree Variables =================
     double Eg, Minv, t, Q2,s,eta;
     double psf, crs_BH, crs_INT, crs_int;
     double psf_flux, flux_factor;
     TLorentzVector L_em, L_ep, L_prot;
+    TLorentzVector L_ProtFermi;
     TLorentzVector L_gprime;
 
     TTree *tr1 = new TTree("tr1", "TCS MC events");
@@ -169,10 +177,26 @@ int main(int argc, char** argv) {
             cout.flush() << "Processed " << i << " events, approximetely " << double(100. * i / double(Nsim)) << "%\r";
         }
 
+        // Check if Fermi option is active, if so generrate Fermi momentum for proton,
+        // Otherwise the proton is at rest
+        // Let's take it in the range of 0 to 1 GeV
+        double p_prot_Fermi = isFermi ? f_FermiDistr->GetRandom(0., 1.) : 0;
+
+        h_P_Fermi1->Fill(p_prot_Fermi);
+
+        double cosThFermi = rand.Uniform(-1., 1);
+        double sinThFermi = sqrt(1. - cosThFermi * cosThFermi);
+        double phiFermi = rand.Uniform(0, 2 * PI);
+
+        double pxFermi = p_prot_Fermi * sinThFermi * cos(phiFermi);
+        double pyFermi = p_prot_Fermi * sinThFermi * sin(phiFermi);
+        double pzFermi = p_prot_Fermi*cosThFermi;
+        double EFermi = sqrt(p_prot_Fermi * p_prot_Fermi + Mp * Mp);
+
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
         flux_factor = N_EPA(Eb, Eg, q2_cut) + N_Brem(Eg, Eb);
-        s = Mp * Mp + 2 * Mp*Eg;
+        s = Mp * Mp + 2 * Eg*(EFermi - p_prot_Fermi*cosThFermi );;
         double t_min = T_min(0., Mp*Mp, MinvMin2, Mp*Mp, s);
         double t_max = T_max(0., Mp*Mp, MinvMin2, Mp*Mp, s);
         double psf_t = t_min - TMath::Max(t_max, t_lim);
@@ -191,7 +215,8 @@ int main(int argc, char** argv) {
 
             double Pprime = 0.5 * sqrt(Lambda(s, Q2, Mp * Mp) / s); // Momentum in c.m. it is the same for q_pr and p_pr
 
-            Lcm.SetPxPyPzE(0., 0., Eg, Mp + Eg);
+            // ** The LorentzVector of CM frame is equal L_gamma + L_proton_Fermi
+            Lcm.SetPxPyPzE(pxFermi, pyFermi, pzFermi + Eg, EFermi + Eg);
             L_prot.SetPxPyPzE(Pprime * sin(th_pprime), 0., Pprime * cos(th_pprime), sqrt(Pprime * Pprime + Mp * Mp));
             L_gprime.SetPxPyPzE(Pprime * sin(th_qprime), 0., Pprime * cos(th_qprime), sqrt(Pprime * Pprime + Q2));
 
@@ -286,7 +311,7 @@ int main(int argc, char** argv) {
     tr1->Write();
     h_ph_h_ph_cm1->Write();
     h_th_g_th_cm1->Write();
-
+    h_P_Fermi1->Write();
 
     file_out->Close();
 

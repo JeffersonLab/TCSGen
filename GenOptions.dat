@@ -7,3 +7,6 @@ MinvMin  1.2
 Q2Cut    0.02
 LUND     0
 Seed     0
+vzMax    2.5
+vzMin    -2.5
+Fermi    0
