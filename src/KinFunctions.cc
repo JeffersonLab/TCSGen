@@ -32,7 +32,7 @@ double KinFuncs::Q2_min( double s, double Eb, double M )
   return Q2min;
 }
 
-double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max)
+double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max, int targetPID)
 {
   const double alpha = 1./137.;
   const double PI = 3.14159265358979312;
@@ -40,6 +40,7 @@ double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max)
   double x = Eg/Eb;
   double me = 0.00051;
   double Mp = 0.9383;
+  if(targetPID==2112){Mp=0.939565;}
   double Q2_min = me*me*x*x/(1 - x);
   return (1/Eb)*alpha/(PI*x)*( (1 - x + x*x/2)*log(Q2_max/Q2_min) - (1 - x));
 }

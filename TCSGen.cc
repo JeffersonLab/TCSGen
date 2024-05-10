@@ -63,7 +63,8 @@ int main(int argc, char** argv) {
     int seed;
     double vz_max;
     double vz_min;
-    bool isFermi;
+    bool isFermi=0; //default
+    int targetPID=2212; //default
     
     for( map<std::string, std::string>::iterator it =  m_Settings.begin(); it!= m_Settings.end(); it++ ){
     
@@ -94,6 +95,8 @@ int main(int argc, char** argv) {
             vz_min = atof(val.c_str());
         }else if (key.compare("Fermi") == 0) {
             isFermi = atof(val.c_str());
+        }else if (key.compare("targetPID") == 0) {
+            targetPID = atof(val.c_str());
         }
         
     }
@@ -109,6 +112,7 @@ int main(int argc, char** argv) {
     cout << "vz_min = " << vz_min << endl;
     cout<<"IsLund = "<<isLund<<endl;
     cout<<"IsFermi = "<<isFermi<<endl;
+    cout<<"Target PID = "<<targetPID<<endl;
     
     cout<<"**************************************************"<<endl;
     cout<<"*******"<<" RandomSeedActuallyUsed: "<<seed<<" *******"<<endl;
@@ -116,7 +120,10 @@ int main(int argc, char** argv) {
     
     const double PI = 3.14159265358979312;
     const double radian = 57.2957795130823229;
-    const double Mp = 0.9383;
+    const double M_p = 0.9383;
+    const double M_n = 0.939565;
+    double Mp=M_p;
+    if(targetPID==2112){Mp=M_n;}
     const double Me = 0.00051;
     //  const double Minv_min = sqrt(Mp*Mp + 2*Mp*Eg_min ) - Mp;
     
@@ -137,6 +144,7 @@ int main(int argc, char** argv) {
 
     TTCSKine tcs_kin1(Mp, Eb);
     TTCSCrs crs_lmlp;
+    crs_lmlp.Set_targetPID(targetPID);
 
     TLorentzVector target(0., 0., 0., Mp);
     TLorentzVector Lcm;
@@ -195,7 +203,7 @@ int main(int argc, char** argv) {
 
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
-        flux_factor = N_EPA(Eb, Eg, q2_cut) + N_Brem(Eg, Eb);
+        flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb);
         s = Mp * Mp + 2 * Eg*(EFermi - p_prot_Fermi*cosThFermi );;
         double t_min = T_min(0., Mp*Mp, MinvMin2, Mp*Mp, s);
         double t_max = T_max(0., Mp*Mp, MinvMin2, Mp*Mp, s);
@@ -266,8 +274,8 @@ int main(int argc, char** argv) {
             eta = Q2 / (2 * (s - Mp * Mp) - Q2);
 
             if (Q2 < 9. && -t < 0.8 && eta < 0.8) {
-                crs_INT = crs_lmlp.Eval_INT(s, Q2, t, -1., tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 2.); //the last argumen "1" is the sc_D
-                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.); //the last argumen "1" is the sc_D
+                crs_INT = crs_lmlp.Eval_INT(s, Q2, t, -1., tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 2.); //the last argument "1" is the sc_D
+                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.,targetPID); //the last argument "1" is the sc_D
             } else {
                 crs_INT = 0;
             }
@@ -299,7 +307,7 @@ int main(int argc, char** argv) {
                     << pz_ep << setw(15) << L_ep.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
             //====== proton ======
-            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << 2212 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_prot << setw(15) << py_prot << setw(15)
+            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << targetPID << setw(5) << 0 << setw(5) << 0 << setw(15) << px_prot << setw(15) << py_prot << setw(15)
                     << pz_prot << setw(15) << L_prot.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
         } else {
