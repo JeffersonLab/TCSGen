@@ -122,17 +122,17 @@ int main(int argc, char** argv) {
     const double radian = 57.2957795130823229;
     const double M_p = 0.9383;
     const double M_n = 0.939565;
-    double Mp=M_p;
-    if(targetPID==2112){Mp=M_n;}
+    double M_nuc=M_p;
+    if(targetPID==2112){M_nuc=M_n;}
     const double Me = 0.00051;
-    //  const double Minv_min = sqrt(Mp*Mp + 2*Mp*Eg_min ) - Mp;
+    //  const double Minv_min = sqrt(M_nuc*M_nuc + 2*M_nuc*Eg_min ) - M_nuc;
     
-    const double Minv_Egmin = sqrt( Mp*Mp + 2*Mp*Eg_min ) - Mp; // This is the maximum mass square that is accessible with a given Egmin, 
+    const double Minv_Egmin = sqrt( M_nuc*M_nuc + 2*M_nuc*Eg_min ) - M_nuc; // This is the maximum mass square that is accessible with a given Egmin, 
                                                                  // if the User specified MinvMin is above this value, then EgMin needs to be overwritten to a Eg, that will allow MinvMin production.
     
     if( Minv_Egmin < MinvMin ){
         double EgMinOld = Eg_min;
-        Eg_min = (MinvMin*MinvMin + 2*Mp*MinvMin)/(2*Mp);
+        Eg_min = (MinvMin*MinvMin + 2*M_nuc*MinvMin)/(2*M_nuc);
         cout<<"With the given Eg_min, the mass "<<MinvMin<<" GeV is not reachable, so the Eg min will be adjusted from "<<EgMinOld<<" GeV to "<<Eg_min<<" GeV"<<endl;
     }
     
@@ -142,11 +142,11 @@ int main(int argc, char** argv) {
     TRandom2 rand;
     rand.SetSeed(seed);
 
-    TTCSKine tcs_kin1(Mp, Eb);
+    TTCSKine tcs_kin1(M_nuc, Eb);
     TTCSCrs crs_lmlp;
     crs_lmlp.Set_targetPID(targetPID);
 
-    TLorentzVector target(0., 0., 0., Mp);
+    TLorentzVector target(0., 0., 0., M_nuc);
     TLorentzVector Lcm;
 
     TFile *file_out = new TFile("tcs_gen.root", "Recreate");
@@ -162,14 +162,14 @@ int main(int argc, char** argv) {
     double Eg, Minv, t, Q2,s,eta;
     double psf, crs_BH, crs_INT, crs_int;
     double psf_flux, flux_factor;
-    TLorentzVector L_em, L_ep, L_prot;
-    TLorentzVector L_ProtFermi;
+    TLorentzVector L_em, L_ep, L_nuc;
+    TLorentzVector L_nucFermi;
     TLorentzVector L_gprime;
 
     TTree *tr1 = new TTree("tr1", "TCS MC events");
     tr1->Branch("L_em", "TLorentzVector", &L_em, 3200, 99);
     tr1->Branch("L_ep", "TLorentzVector", &L_ep, 3200, 99);
-    tr1->Branch("L_prot", "TLorentzVector", &L_prot, 3200, 99);
+    tr1->Branch("L_nuc", "TLorentzVector", &L_nuc, 3200, 99);
     tr1->Branch("Eg", &Eg, "Eg/D");
     tr1->Branch("Q2", &Q2, "Q2/D");
     tr1->Branch("t", &t, "t/D");
@@ -185,47 +185,47 @@ int main(int argc, char** argv) {
             cout.flush() << "Processed " << i << " events, approximetely " << double(100. * i / double(Nsim)) << "%\r";
         }
 
-        // Check if Fermi option is active, if so generrate Fermi momentum for proton,
-        // Otherwise the proton is at rest
+        // Check if Fermi option is active, if so generrate Fermi momentum for nucon,
+        // Otherwise the nucon is at rest
         // Let's take it in the range of 0 to 1 GeV
-        double p_prot_Fermi = isFermi ? f_FermiDistr->GetRandom(0., 1.) : 0;
+        double p_nuc_Fermi = isFermi ? f_FermiDistr->GetRandom(0., 1.) : 0;
 
-        h_P_Fermi1->Fill(p_prot_Fermi);
+        h_P_Fermi1->Fill(p_nuc_Fermi);
 
         double cosThFermi = rand.Uniform(-1., 1);
         double sinThFermi = sqrt(1. - cosThFermi * cosThFermi);
         double phiFermi = rand.Uniform(0, 2 * PI);
 
-        double pxFermi = p_prot_Fermi * sinThFermi * cos(phiFermi);
-        double pyFermi = p_prot_Fermi * sinThFermi * sin(phiFermi);
-        double pzFermi = p_prot_Fermi*cosThFermi;
-        double EFermi = sqrt(p_prot_Fermi * p_prot_Fermi + Mp * Mp);
+        double pxFermi = p_nuc_Fermi * sinThFermi * cos(phiFermi);
+        double pyFermi = p_nuc_Fermi * sinThFermi * sin(phiFermi);
+        double pzFermi = p_nuc_Fermi*cosThFermi;
+        double EFermi = sqrt(p_nuc_Fermi * p_nuc_Fermi + M_nuc * M_nuc);
 
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
         flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb);
-        s = Mp * Mp + 2 * Eg*(EFermi - p_prot_Fermi*cosThFermi );;
-        double t_min = T_min(0., Mp*Mp, MinvMin2, Mp*Mp, s);
-        double t_max = T_max(0., Mp*Mp, MinvMin2, Mp*Mp, s);
+        s = M_nuc * M_nuc + 2 * Eg*(EFermi - p_nuc_Fermi*cosThFermi );;
+        double t_min = T_min(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
+        double t_max = T_max(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
         double psf_t = t_min - TMath::Max(t_max, t_lim);
 
         if (t_min > t_lim) {
             t = rand.Uniform(t_min - psf_t, t_min);
-            double Q2max = 2 * Mp * Eg + t - (Eg / Mp)*(2 * Mp * Mp - t - sqrt(t * t - 4 * Mp * Mp * t)); // Page 182 of my notebook. Derived using "Q2max = s + t - 2Mp**2 + u_max" relation
+            double Q2max = 2 * M_nuc * Eg + t - (Eg / M_nuc)*(2 * M_nuc * M_nuc - t - sqrt(t * t - 4 * M_nuc * M_nuc * t)); // Page 182 of my notebook. Derived using "Q2max = s + t - 2Mp**2 + u_max" relation
 
             double psf_Q2 = Q2max - MinvMin2;
 
             Q2 = rand.Uniform(MinvMin2, MinvMin2 + psf_Q2);
 
-            double u = 2 * Mp * Mp + Q2 - s - t;
-            double th_qprime = acos((s * (t - u) - Mp * Mp * (Q2 - Mp * Mp)) / sqrt(Lambda(s, 0, Mp * Mp) * Lambda(s, Q2, Mp * Mp))); //Byukling Kayanti (4.9)
+            double u = 2 * M_nuc * M_nuc + Q2 - s - t;
+            double th_qprime = acos((s * (t - u) - M_nuc * M_nuc * (Q2 - M_nuc * M_nuc)) / sqrt(Lambda(s, 0, M_nuc * M_nuc) * Lambda(s, Q2, M_nuc * M_nuc))); //Byukling Kayanti (4.9)
             double th_pprime = PI + th_qprime;
 
-            double Pprime = 0.5 * sqrt(Lambda(s, Q2, Mp * Mp) / s); // Momentum in c.m. it is the same for q_pr and p_pr
+            double Pprime = 0.5 * sqrt(Lambda(s, Q2, M_nuc * M_nuc) / s); // Momentum in c.m. it is the same for q_pr and p_pr
 
-            // ** The LorentzVector of CM frame is equal L_gamma + L_proton_Fermi
+            // ** The LorentzVector of CM frame is equal L_gamma + L_nucon_Fermi
             Lcm.SetPxPyPzE(pxFermi, pyFermi, pzFermi + Eg, EFermi + Eg);
-            L_prot.SetPxPyPzE(Pprime * sin(th_pprime), 0., Pprime * cos(th_pprime), sqrt(Pprime * Pprime + Mp * Mp));
+            L_nuc.SetPxPyPzE(Pprime * sin(th_pprime), 0., Pprime * cos(th_pprime), sqrt(Pprime * Pprime + M_nuc * M_nuc));
             L_gprime.SetPxPyPzE(Pprime * sin(th_qprime), 0., Pprime * cos(th_qprime), sqrt(Pprime * Pprime + Q2));
 
             double psf_cos_th = 2.; // cos(th):(-1 : 1)
@@ -252,16 +252,16 @@ int main(int argc, char** argv) {
 
 
             L_gprime.Boost(Lcm.BoostVector());
-            L_prot.Boost(Lcm.BoostVector());
+            L_nuc.Boost(Lcm.BoostVector());
 
             double psf_phi_lab = 2 * PI;
             double phi_rot = rand.Uniform(0., psf_phi_lab);
 
-            L_prot.RotateZ(phi_rot);
+            L_nuc.RotateZ(phi_rot);
             L_gprime.RotateZ(phi_rot);
             L_em.RotateZ(phi_rot);
             L_ep.RotateZ(phi_rot);
-            tcs_kin1.SetLemLepLp(L_em, L_ep, L_prot);
+            tcs_kin1.SetLemLepLp(L_em, L_ep, L_nuc);
 
             h_ph_h_ph_cm1->Fill(phi_cm * TMath::RadToDeg(), tcs_kin1.GetPhi_cm());
             h_th_g_th_cm1->Fill(acos(cos_th) * TMath::RadToDeg(), tcs_kin1.GetTheta_cm());
@@ -271,11 +271,11 @@ int main(int argc, char** argv) {
             //crs_lmlp.Set_SQ2t(s, Q2, t);
             crs_BH = crs_lmlp.Eval_BH(s, Q2, t, -1, tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm()); // -1: cros section is not weighted by L/L0
 
-            eta = Q2 / (2 * (s - Mp * Mp) - Q2);
+            eta = Q2 / (2 * (s - M_nuc * M_nuc) - Q2);
 
             if (Q2 < 9. && -t < 0.8 && eta < 0.8) {
                 crs_INT = crs_lmlp.Eval_INT(s, Q2, t, -1., tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 2.); //the last argument "1" is the sc_D
-                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.,targetPID); //the last argument "1" is the sc_D
+                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.); //the last argument "1" is the sc_D
             } else {
                 crs_INT = 0;
             }
@@ -289,9 +289,9 @@ int main(int argc, char** argv) {
             double px_ep = L_ep.Px();
             double py_ep = L_ep.Py();
             double pz_ep = L_ep.Pz();
-            double px_prot = L_prot.Px();
-            double py_prot = L_prot.Py();
-            double pz_prot = L_prot.Pz();
+            double px_nuc = L_nuc.Px();
+            double py_nuc = L_nuc.Py();
+            double pz_nuc = L_nuc.Pz();
             double vz = rand.Uniform(vz_min, vz_max);
             //double vz = 0.;
 
@@ -306,9 +306,9 @@ int main(int argc, char** argv) {
             out_dat << 2 << setw(5) << +1 << setw(5) << 1 << setw(7) << -11 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_ep << setw(15) << py_ep << setw(15)
                     << pz_ep << setw(15) << L_ep.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
-            //====== proton ======
-            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << targetPID << setw(5) << 0 << setw(5) << 0 << setw(15) << px_prot << setw(15) << py_prot << setw(15)
-                    << pz_prot << setw(15) << L_prot.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+            //====== nucon ======
+            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << targetPID << setw(5) << 0 << setw(5) << 0 << setw(15) << px_nuc << setw(15) << py_nuc << setw(15)
+                    << pz_nuc << setw(15) << L_nuc.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
         } else {
             cout << " |t_min| > |t_lim|" << endl;
