@@ -9,5 +9,5 @@ MinvMin  1.2
 Q2Cut    0.02
 LUND     0
 Seed     0
-Fermi    1
-targetPID    2112
+Fermi    0
+targetPID    2212
