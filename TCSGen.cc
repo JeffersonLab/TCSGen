@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
         flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb);
-        s = M_nuc * M_nuc + 2 * Eg*(EFermi - p_nuc_Fermi*cosThFermi );;
+        s = M_nuc * M_nuc + 2 * Eg*(EFermi - p_nuc_Fermi*cosThFermi );
         double t_min = T_min(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
         double t_max = T_max(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
         double psf_t = t_min - TMath::Max(t_max, t_lim);
@@ -270,6 +270,13 @@ int main(int argc, char** argv) {
 
             //crs_lmlp.Set_SQ2t(s, Q2, t);
             crs_BH = crs_lmlp.Eval_BH(s, Q2, t, -1, tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm()); // -1: cros section is not weighted by L/L0
+
+            if(std::isnan(crs_BH)){
+              //happens because denominator is greater than nomitor in acos term th_qprime
+              //guessing adding fermi momentum leads to Q2Max being incorrect?
+              cout<<"BH crs is nan. Will skip this event"<<endl;
+              continue;
+            }
 
             eta = Q2 / (2 * (s - M_nuc * M_nuc) - Q2);
 
