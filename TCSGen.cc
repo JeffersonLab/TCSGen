@@ -65,6 +65,8 @@ int main(int argc, char** argv) {
     double vz_min;
     bool isFermi=0; //default
     int targetPID=2212; //default
+    double X0=929.;//default (LH2)
+    double dt=5.0;//default (RG-A, RG-B targets)
     
     for( map<std::string, std::string>::iterator it =  m_Settings.begin(); it!= m_Settings.end(); it++ ){
     
@@ -97,6 +99,10 @@ int main(int argc, char** argv) {
             isFermi = atof(val.c_str());
         }else if (key.compare("targetPID") == 0) {
             targetPID = atof(val.c_str());
+        }else if (key.compare("X0") == 0) {
+            X0 = atof(val.c_str());
+        }else if (key.compare("target_length") == 0) {
+            dt = atof(val.c_str());
         }
         
     }
@@ -147,6 +153,7 @@ int main(int argc, char** argv) {
     crs_lmlp.Set_targetPID(targetPID);
 
     TLorentzVector target(0., 0., 0., M_nuc);
+    TLorentzVector beam(0.,0.0,Eb,sqrt(0.00051*0.00051+Eb*Eb));
     TLorentzVector Lcm;
 
     TFile *file_out = new TFile("tcs_gen.root", "Recreate");
@@ -158,8 +165,10 @@ int main(int argc, char** argv) {
     TF1 *f_FermiDistr = new TF1("f_FermiDistr", Fermi_Distribution, 0., 1, 0);
     TH1D *h_P_Fermi1 = new TH1D("h_P_Fermi1", "", 200, 0., 1.05);
 
+    TH1D *h_MM2 = new TH1D("h_MM2", "MM^{2}", 100, -0.5, 0.5);
+
     //================= Definition of Tree Variables =================
-    double Eg, Minv, t, Q2,s,eta;
+    double Eg, Minv, t, Q2,s,eta,MM2;
     double psf, crs_BH, crs_INT, crs_int;
     double psf_flux, flux_factor;
     TLorentzVector L_em, L_ep, L_nuc;
@@ -172,6 +181,7 @@ int main(int argc, char** argv) {
     tr1->Branch("L_nuc", "TLorentzVector", &L_nuc, 3200, 99);
     tr1->Branch("Eg", &Eg, "Eg/D");
     tr1->Branch("Q2", &Q2, "Q2/D");
+    tr1->Branch("MM2", &MM2, "Q2/D");
     tr1->Branch("t", &t, "t/D");
     tr1->Branch("s", &s, "s/D");
     tr1->Branch("eta", &eta, "eta/D");    
@@ -203,7 +213,7 @@ int main(int argc, char** argv) {
 
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
-        flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb);
+        flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb,dt,X0);
         s = M_nuc * M_nuc + 2 * Eg*(EFermi - p_nuc_Fermi*cosThFermi );
         double t_min = T_min(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
         double t_max = T_max(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
@@ -287,6 +297,11 @@ int main(int argc, char** argv) {
                 crs_INT = 0;
             }
 
+            TLorentzVector miss = beam + target - L_em - L_ep - L_nuc;
+
+            MM2 = miss.M2();
+            h_MM2->Fill(MM2);
+            
             tr1->Fill();
 
             //======================== Write LUND file ================================
@@ -302,20 +317,21 @@ int main(int argc, char** argv) {
             double vz = rand.Uniform(vz_min, vz_max);
             //double vz = 0.;
 
+
             //============= Write Header ===================
             out_dat << 3 << setw(5) << 1 << setw(5) << 1 << setw(5) << 0 << " " << setw(5) << "  " << psf << " " << setw(15) << 0 << setw(15)
                     << flux_factor << setw(15) << 0 << setw(5) << 0 << setw(5) << " " << crs_BH << endl;
             // =============== WWrite Particles ============
             //====== e- ======
             out_dat << 1 << setw(5) << -1 << setw(5) << 1 << setw(7) << 11 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_em << setw(15) << py_em << setw(15)
-                    << pz_em << setw(15) << L_em.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+                    << pz_em << setw(15) << L_em.E() << setw(5) << Me << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
             //====== e+ ======
             out_dat << 2 << setw(5) << +1 << setw(5) << 1 << setw(7) << -11 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_ep << setw(15) << py_ep << setw(15)
-                    << pz_ep << setw(15) << L_ep.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+                    << pz_ep << setw(15) << L_ep.E() << setw(5) << Me << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
-            //====== nucon ======
+            //====== nuc ======
             out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << targetPID << setw(5) << 0 << setw(5) << 0 << setw(15) << px_nuc << setw(15) << py_nuc << setw(15)
-                    << pz_nuc << setw(15) << L_nuc.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+                    << pz_nuc << setw(15) << L_nuc.E() << setw(5) << M_nuc << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
         } else {
             cout << " |t_min| > |t_lim|" << endl;
@@ -327,6 +343,7 @@ int main(int argc, char** argv) {
     h_ph_h_ph_cm1->Write();
     h_th_g_th_cm1->Write();
     h_P_Fermi1->Write();
+    h_MM2->Write();
 
     file_out->Close();
 
