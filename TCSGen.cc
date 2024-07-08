@@ -282,6 +282,7 @@ int main(int argc, char** argv) {
             crs_BH = crs_lmlp.Eval_BH(s, Q2, t, -1, tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm()); // -1: cros section is not weighted by L/L0
 
             if(std::isnan(crs_BH)){
+              i = i - 1;
               //happens because denominator is greater than nomitor in acos term th_qprime
               //guessing adding fermi momentum leads to Q2Max being incorrect?
               cout<<"BH crs is nan. Will skip this event"<<endl;
