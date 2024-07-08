@@ -335,6 +335,7 @@ int main(int argc, char** argv) {
                     << pz_nuc << setw(15) << L_nuc.E() << setw(5) << M_nuc << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
         } else {
+            i = i - 1;
             cout << " |t_min| > |t_lim|" << endl;
             cout << " t_min =  " << t_min << "   t_lim = " << t_lim << "  Eg = " << Eg << endl;
         }
