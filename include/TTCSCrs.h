@@ -15,7 +15,7 @@
 class TTCSCrs {
 public:
     TTCSCrs();
-    TTCSCrs(double, double, double); // s(GeV)^2, Q2(GeV)^2, t(GeV)^2
+    TTCSCrs(double, double, double, double); // s(GeV)^2, Q2(GeV)^2, t(GeV)^2
     /*TTCSCrs(const TTCSCrs& orig);*/
 
     double Eval_BH(double, double) const; // phi and theta in radians

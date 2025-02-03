@@ -51,7 +51,12 @@ double KinFuncs::N_Brem(double Eg, double Eb, double d, double X0)
   return (0.5*d/X0)*(1/Eg)*((4./3.) - (4./3.)*(Eg/Eb) + Eg*Eg/(Eb*Eb));
 }
 
-double KinFuncs::Fermi_Distribution(double *xx, double *par) {
+/*double KinFuncs::Fermi_Distribution(double *xx, double *par) {
   double x = xx[0];
   return (x * (0.26 * 0.26 - 0.0456 * 0.0456) / (x * x + 0.0456 * 0.0456) / (x * x + 0.26 * 0.26))*(x * (0.26 * 0.26 - 0.0456 * 0.0456) / (x * x + 0.0456 * 0.0456) / (x * x + 0.26 * 0.26));
+}*/
+
+double KinFuncs::Fermi_Distribution(double *xx, double *par) {
+  double x = xx[0];
+  return 35*((x * ((-0.114) * (-0.114) - 0.1108 * 0.1108) / (x * x + 0.1108 * 0.1108) / (x * x + (-0.114) * (-0.114)))*(x * ((-0.114) * (-0.114) - 0.1108 * 0.1108) / (x * x + 0.1108 * 0.1108) / (x * x + (-0.114) * (-0.114))));
 }

@@ -20,12 +20,14 @@ TTCSCrs::TTCSCrs() {
     if (gSystem->AccessPathName(dat))
         dat=gSystem->Getenv("TCSGEN_DIR")+TString("/")+dat;
     
-    f_BH = new TF2("f_BH", BH_crs_section, 0, 360, 0, 180, 4);
-    f_INT = new TF2("f_INT", INT_crs_section, 0., 360., 0., 180., 12);
+    f_BH = new TF2("f_BH", BH_crs_section, 0, 360, 0, 180, 5);
+    f_INT = new TF2("f_INT", INT_crs_section, 0., 360., 0., 180., 13);
     gp = new GPDs(dat, 17, 17, 9, 1.49, -0.20, 0.072);
 }
 
-TTCSCrs::TTCSCrs(double a_s, double a_Q2, double a_t) {
+TTCSCrs::TTCSCrs(double a_s, double a_Q2, double a_t, double tpid) {
+
+    targetPID=tpid;
 
     double M_nuc = M_p;
     if(targetPID==2112){M_nuc=M_n;}
@@ -36,8 +38,8 @@ TTCSCrs::TTCSCrs(double a_s, double a_Q2, double a_t) {
 
     Set_SQ2t(a_s, a_Q2, a_t);
     iweight = -1;
-    f_BH = new TF2("f_BH", BH_crs_section, 0, 360, 0, 180, 4);
-    f_BH->SetParameters(is, iQ2, it);
+    f_BH = new TF2("f_BH", BH_crs_section, 0, 360, 0, 180, 5);
+    f_BH->SetParameters(is, iQ2, it,targetPID);
 
     f_INT = new TF2("f_INT", INT_crs_section, 0., 360., 0., 180., 12);
     double eta = iQ2 / (2 * (is - M_nuc * M_nuc) - iQ2);
@@ -180,12 +182,10 @@ double TTCSCrs::INT_crs_section(double *x, double *par) {
 
 double TTCSCrs::Eval_BH(double a_phi, double a_th) const {
     f_BH->SetParameters(is, iQ2, it, iweight,targetPID);
-
     return f_BH->Eval(a_phi, a_th);
 }
 
 double TTCSCrs::Eval_BH(double a_s, double a_Q2, double a_t, double a_weight, double a_phi, double a_th) const {
-
     f_BH->SetParameters(a_s, a_Q2, a_t, a_weight,targetPID);
     return f_BH->Eval(a_phi, a_th);
 
