@@ -15,7 +15,7 @@
 class TTCSCrs {
 public:
     TTCSCrs();
-    TTCSCrs(double, double, double); // s(GeV)^2, Q2(GeV)^2, t(GeV)^2
+    TTCSCrs(double, double, double, double); // s(GeV)^2, Q2(GeV)^2, t(GeV)^2
     /*TTCSCrs(const TTCSCrs& orig);*/
 
     double Eval_BH(double, double) const; // phi and theta in radians
@@ -31,6 +31,9 @@ public:
     void Draw_INT(const char* option, double sc_D = 1.);
     TH2D *Get_BH_Crs_Histogream_ThPhi(const char *name, int iweight = 1);
     TH2D *Get_INT_Crs_Histogream_ThPhi(const char *name, int iweight = 1);
+    void Set_targetPID(int tPID){
+      targetPID=tPID;
+    }
 
 
     virtual ~TTCSCrs();
@@ -38,10 +41,12 @@ private:
     double is, iQ2, it;
     double iweight;
     double isc_D;
+    int targetPID=2212;
     GPDs *gp;
     static constexpr double radian = 57.2957795130823229;
     static constexpr double m_e = 0.00051;
     static constexpr double M_p = 0.938272;
+    static constexpr double M_n = 0.939565;
     static constexpr double alpha_em = 1. / 137.;
     static constexpr double PI = 3.14159265358979312;
     static constexpr double ammp = 2.793;

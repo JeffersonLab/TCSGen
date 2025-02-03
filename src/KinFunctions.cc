@@ -32,7 +32,7 @@ double KinFuncs::Q2_min( double s, double Eb, double M )
   return Q2min;
 }
 
-double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max)
+double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max, int targetPID)
 {
   const double alpha = 1./137.;
   const double PI = 3.14159265358979312;
@@ -40,6 +40,7 @@ double KinFuncs::N_EPA(double Eb, double Eg, double Q2_max)
   double x = Eg/Eb;
   double me = 0.00051;
   double Mp = 0.9383;
+  if(targetPID==2112){Mp=0.939565;}
   double Q2_min = me*me*x*x/(1 - x);
   return (1/Eb)*alpha/(PI*x)*( (1 - x + x*x/2)*log(Q2_max/Q2_min) - (1 - x));
 }
@@ -48,4 +49,14 @@ double KinFuncs::N_Brem(double Eg, double Eb, double d, double X0)
 {
   // The factor 0.5 is because when one integrates over (l - x)*dx, then you get l^2/2
   return (0.5*d/X0)*(1/Eg)*((4./3.) - (4./3.)*(Eg/Eb) + Eg*Eg/(Eb*Eb));
+}
+
+/*double KinFuncs::Fermi_Distribution(double *xx, double *par) {
+  double x = xx[0];
+  return (x * (0.26 * 0.26 - 0.0456 * 0.0456) / (x * x + 0.0456 * 0.0456) / (x * x + 0.26 * 0.26))*(x * (0.26 * 0.26 - 0.0456 * 0.0456) / (x * x + 0.0456 * 0.0456) / (x * x + 0.26 * 0.26));
+}*/
+
+double KinFuncs::Fermi_Distribution(double *xx, double *par) {
+  double x = xx[0];
+  return 35*((x * ((-0.114) * (-0.114) - 0.1108 * 0.1108) / (x * x + 0.1108 * 0.1108) / (x * x + (-0.114) * (-0.114)))*(x * ((-0.114) * (-0.114) - 0.1108 * 0.1108) / (x * x + 0.1108 * 0.1108) / (x * x + (-0.114) * (-0.114))));
 }

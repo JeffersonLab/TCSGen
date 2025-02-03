@@ -26,6 +26,8 @@ def main():
     MinvMin = 2;
     vz_max =  2.5;
     vz_min = -2.5;
+    Fermi  = 0;
+    targetPID = 2212;
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "n:e:t:lhor", ["help", "output=", "Egmin=", "Egmax=", "MinvMin=", "q2Cut=", "LUND", "Run", "trig=", "seed=", "docker", "vzMin=", "vzMax="])
@@ -62,6 +64,10 @@ def main():
             vz_max = a;
         elif o in ("-l", "--LUND"):
             LUND = 1
+        elif o == "--Fermi":
+            Fermi = a
+        elif o == "--targetPID":
+            targetPID = a
         elif o in ("-r", "--Run"):
             Run = True;
         elif o in("--docker"):
@@ -85,7 +91,9 @@ def main():
     optFile.write("MinvMin  " + str(MinvMin) + "\n");
     optFile.write("Q2Cut    " + str(Q2Cut) + "\n");
     optFile.write("LUND     " + str(LUND)  + "\n");
-    optFile.write("Seed     " + str(Seed));
+    optFile.write("Seed     " + str(Seed) + "\n");
+    optFile.write("Fermi    " + str(Fermi) + "\n");
+    optFile.write("targetPID    " + str(targetPID));
 
     optFile.close()
 

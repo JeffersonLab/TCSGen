@@ -33,3 +33,5 @@ cross section calculation, it uses that grid.
 - tLim          The t_Max value in GeV
 - EgMin         Photon energy minimum
 - EgMax         Photon energy maximum
+- Fermi         Add Fermi momentum to target nucleon (defaults to 0)
+- targetPID     Target PID (currently accepts 2112 and 2212, defaults to 2212)

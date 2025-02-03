@@ -63,6 +63,10 @@ int main(int argc, char** argv) {
     int seed;
     double vz_max;
     double vz_min;
+    bool isFermi=0; //default
+    int targetPID=2212; //default
+    double X0=929.;//default (LH2)
+    double dt=5.0;//default (RG-A, RG-B targets)
     
     for( map<std::string, std::string>::iterator it =  m_Settings.begin(); it!= m_Settings.end(); it++ ){
     
@@ -91,6 +95,14 @@ int main(int argc, char** argv) {
             vz_max = atof(val.c_str());
         }else if( key.compare("vzMin") == 0 ){
             vz_min = atof(val.c_str());
+        }else if (key.compare("Fermi") == 0) {
+            isFermi = atof(val.c_str());
+        }else if (key.compare("targetPID") == 0) {
+            targetPID = atof(val.c_str());
+        }else if (key.compare("X0") == 0) {
+            X0 = atof(val.c_str());
+        }else if (key.compare("target_length") == 0) {
+            dt = atof(val.c_str());
         }
         
     }
@@ -105,6 +117,8 @@ int main(int argc, char** argv) {
     cout << "vz_max = " << vz_max << endl;
     cout << "vz_min = " << vz_min << endl;
     cout<<"IsLund = "<<isLund<<endl;
+    cout<<"IsFermi = "<<isFermi<<endl;
+    cout<<"Target PID = "<<targetPID<<endl;
     
     cout<<"**************************************************"<<endl;
     cout<<"*******"<<" RandomSeedActuallyUsed: "<<seed<<" *******"<<endl;
@@ -112,16 +126,19 @@ int main(int argc, char** argv) {
     
     const double PI = 3.14159265358979312;
     const double radian = 57.2957795130823229;
-    const double Mp = 0.9383;
+    const double M_p = 0.9383;
+    const double M_n = 0.939565;
+    double M_nuc=M_p;
+    if(targetPID==2112){M_nuc=M_n;}
     const double Me = 0.00051;
-    //  const double Minv_min = sqrt(Mp*Mp + 2*Mp*Eg_min ) - Mp;
+    //  const double Minv_min = sqrt(M_nuc*M_nuc + 2*M_nuc*Eg_min ) - M_nuc;
     
-    const double Minv_Egmin = sqrt( Mp*Mp + 2*Mp*Eg_min ) - Mp; // This is the maximum mass square that is accessible with a given Egmin, 
+    const double Minv_Egmin = sqrt( M_nuc*M_nuc + 2*M_nuc*Eg_min ) - M_nuc; // This is the maximum mass square that is accessible with a given Egmin, 
                                                                  // if the User specified MinvMin is above this value, then EgMin needs to be overwritten to a Eg, that will allow MinvMin production.
     
     if( Minv_Egmin < MinvMin ){
         double EgMinOld = Eg_min;
-        Eg_min = (MinvMin*MinvMin + 2*Mp*MinvMin)/(2*Mp);
+        Eg_min = (MinvMin*MinvMin + 2*M_nuc*MinvMin)/(2*M_nuc);
         cout<<"With the given Eg_min, the mass "<<MinvMin<<" GeV is not reachable, so the Eg min will be adjusted from "<<EgMinOld<<" GeV to "<<Eg_min<<" GeV"<<endl;
     }
     
@@ -131,10 +148,12 @@ int main(int argc, char** argv) {
     TRandom2 rand;
     rand.SetSeed(seed);
 
-    TTCSKine tcs_kin1(Mp, Eb);
+    TTCSKine tcs_kin1(M_nuc, Eb);
     TTCSCrs crs_lmlp;
+    crs_lmlp.Set_targetPID(targetPID);
 
-    TLorentzVector target(0., 0., 0., Mp);
+    TLorentzVector target(0., 0., 0., M_nuc);
+    TLorentzVector beam(0.,0.0,Eb,sqrt(0.00051*0.00051+Eb*Eb));
     TLorentzVector Lcm;
 
     TFile *file_out = new TFile("tcs_gen.root", "Recreate");
@@ -143,19 +162,26 @@ int main(int argc, char** argv) {
     TH2D *h_ph_h_ph_cm1 = new TH2D("h_ph_h_ph_cm1", "", 200, 0., 360., 200, 0., 360.);
     TH2D *h_th_g_th_cm1 = new TH2D("h_th_g_th_cm1", "", 200, 0., 180., 200, 0., 180.);
 
+    TF1 *f_FermiDistr = new TF1("f_FermiDistr", Fermi_Distribution, 0., 1, 0);
+    TH1D *h_P_Fermi1 = new TH1D("h_P_Fermi1", "", 200, 0., 1.05);
+
+    TH1D *h_MM2 = new TH1D("h_MM2", "MM^{2}", 100, -0.5, 0.5);
+
     //================= Definition of Tree Variables =================
-    double Eg, Minv, t, Q2,s,eta;
+    double Eg, Minv, t, Q2,s,eta,MM2;
     double psf, crs_BH, crs_INT, crs_int;
     double psf_flux, flux_factor;
-    TLorentzVector L_em, L_ep, L_prot;
+    TLorentzVector L_em, L_ep, L_nuc;
+    TLorentzVector L_nucFermi;
     TLorentzVector L_gprime;
 
     TTree *tr1 = new TTree("tr1", "TCS MC events");
     tr1->Branch("L_em", "TLorentzVector", &L_em, 3200, 99);
     tr1->Branch("L_ep", "TLorentzVector", &L_ep, 3200, 99);
-    tr1->Branch("L_prot", "TLorentzVector", &L_prot, 3200, 99);
+    tr1->Branch("L_nuc", "TLorentzVector", &L_nuc, 3200, 99);
     tr1->Branch("Eg", &Eg, "Eg/D");
     tr1->Branch("Q2", &Q2, "Q2/D");
+    tr1->Branch("MM2", &MM2, "Q2/D");
     tr1->Branch("t", &t, "t/D");
     tr1->Branch("s", &s, "s/D");
     tr1->Branch("eta", &eta, "eta/D");    
@@ -169,30 +195,47 @@ int main(int argc, char** argv) {
             cout.flush() << "Processed " << i << " events, approximetely " << double(100. * i / double(Nsim)) << "%\r";
         }
 
+        // Check if Fermi option is active, if so generrate Fermi momentum for nucon,
+        // Otherwise the nucon is at rest
+        // Let's take it in the range of 0 to 1 GeV
+        double p_nuc_Fermi = isFermi ? f_FermiDistr->GetRandom(0., 1.) : 0;
+
+        h_P_Fermi1->Fill(p_nuc_Fermi);
+
+        double cosThFermi = rand.Uniform(-1., 1);
+        double sinThFermi = sqrt(1. - cosThFermi * cosThFermi);
+        double phiFermi = rand.Uniform(0, 2 * PI);
+
+        double pxFermi = p_nuc_Fermi * sinThFermi * cos(phiFermi);
+        double pyFermi = p_nuc_Fermi * sinThFermi * sin(phiFermi);
+        double pzFermi = p_nuc_Fermi*cosThFermi;
+        double EFermi = sqrt(p_nuc_Fermi * p_nuc_Fermi + M_nuc * M_nuc);
+
         double psf_Eg = Eg_max - Eg_min;
         Eg = rand.Uniform(Eg_min, Eg_min + psf_Eg);
-        flux_factor = N_EPA(Eb, Eg, q2_cut) + N_Brem(Eg, Eb);
-        s = Mp * Mp + 2 * Mp*Eg;
-        double t_min = T_min(0., Mp*Mp, MinvMin2, Mp*Mp, s);
-        double t_max = T_max(0., Mp*Mp, MinvMin2, Mp*Mp, s);
+        flux_factor = N_EPA(Eb, Eg, q2_cut, targetPID) + N_Brem(Eg, Eb,dt,X0);
+        s = M_nuc * M_nuc + 2 * Eg*(EFermi - p_nuc_Fermi*cosThFermi );
+        double t_min = T_min(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
+        double t_max = T_max(0., M_nuc*M_nuc, MinvMin2, M_nuc*M_nuc, s);
         double psf_t = t_min - TMath::Max(t_max, t_lim);
 
         if (t_min > t_lim) {
             t = rand.Uniform(t_min - psf_t, t_min);
-            double Q2max = 2 * Mp * Eg + t - (Eg / Mp)*(2 * Mp * Mp - t - sqrt(t * t - 4 * Mp * Mp * t)); // Page 182 of my notebook. Derived using "Q2max = s + t - 2Mp**2 + u_max" relation
+            double Q2max = 2 * M_nuc * Eg + t - (Eg / M_nuc)*(2 * M_nuc * M_nuc - t - sqrt(t * t - 4 * M_nuc * M_nuc * t)); // Page 182 of my notebook. Derived using "Q2max = s + t - 2Mp**2 + u_max" relation
 
             double psf_Q2 = Q2max - MinvMin2;
 
             Q2 = rand.Uniform(MinvMin2, MinvMin2 + psf_Q2);
 
-            double u = 2 * Mp * Mp + Q2 - s - t;
-            double th_qprime = acos((s * (t - u) - Mp * Mp * (Q2 - Mp * Mp)) / sqrt(Lambda(s, 0, Mp * Mp) * Lambda(s, Q2, Mp * Mp))); //Byukling Kayanti (4.9)
+            double u = 2 * M_nuc * M_nuc + Q2 - s - t;
+            double th_qprime = acos((s * (t - u) - M_nuc * M_nuc * (Q2 - M_nuc * M_nuc)) / sqrt(Lambda(s, 0, M_nuc * M_nuc) * Lambda(s, Q2, M_nuc * M_nuc))); //Byukling Kayanti (4.9)
             double th_pprime = PI + th_qprime;
 
-            double Pprime = 0.5 * sqrt(Lambda(s, Q2, Mp * Mp) / s); // Momentum in c.m. it is the same for q_pr and p_pr
+            double Pprime = 0.5 * sqrt(Lambda(s, Q2, M_nuc * M_nuc) / s); // Momentum in c.m. it is the same for q_pr and p_pr
 
-            Lcm.SetPxPyPzE(0., 0., Eg, Mp + Eg);
-            L_prot.SetPxPyPzE(Pprime * sin(th_pprime), 0., Pprime * cos(th_pprime), sqrt(Pprime * Pprime + Mp * Mp));
+            // ** The LorentzVector of CM frame is equal L_gamma + L_nucon_Fermi
+            Lcm.SetPxPyPzE(pxFermi, pyFermi, pzFermi + Eg, EFermi + Eg);
+            L_nuc.SetPxPyPzE(Pprime * sin(th_pprime), 0., Pprime * cos(th_pprime), sqrt(Pprime * Pprime + M_nuc * M_nuc));
             L_gprime.SetPxPyPzE(Pprime * sin(th_qprime), 0., Pprime * cos(th_qprime), sqrt(Pprime * Pprime + Q2));
 
             double psf_cos_th = 2.; // cos(th):(-1 : 1)
@@ -219,16 +262,16 @@ int main(int argc, char** argv) {
 
 
             L_gprime.Boost(Lcm.BoostVector());
-            L_prot.Boost(Lcm.BoostVector());
+            L_nuc.Boost(Lcm.BoostVector());
 
             double psf_phi_lab = 2 * PI;
             double phi_rot = rand.Uniform(0., psf_phi_lab);
 
-            L_prot.RotateZ(phi_rot);
+            L_nuc.RotateZ(phi_rot);
             L_gprime.RotateZ(phi_rot);
             L_em.RotateZ(phi_rot);
             L_ep.RotateZ(phi_rot);
-            tcs_kin1.SetLemLepLp(L_em, L_ep, L_prot);
+            tcs_kin1.SetLemLepLp(L_em, L_ep, L_nuc);
 
             h_ph_h_ph_cm1->Fill(phi_cm * TMath::RadToDeg(), tcs_kin1.GetPhi_cm());
             h_th_g_th_cm1->Fill(acos(cos_th) * TMath::RadToDeg(), tcs_kin1.GetTheta_cm());
@@ -238,15 +281,28 @@ int main(int argc, char** argv) {
             //crs_lmlp.Set_SQ2t(s, Q2, t);
             crs_BH = crs_lmlp.Eval_BH(s, Q2, t, -1, tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm()); // -1: cros section is not weighted by L/L0
 
-            eta = Q2 / (2 * (s - Mp * Mp) - Q2);
+            if(std::isnan(crs_BH)){
+              i = i - 1;
+              //happens because denominator is greater than nomitor in acos term th_qprime
+              //guessing adding fermi momentum leads to Q2Max being incorrect?
+              cout<<"BH crs is nan. Will skip this event"<<endl;
+              continue;
+            }
+
+            eta = Q2 / (2 * (s - M_nuc * M_nuc) - Q2);
 
             if (Q2 < 9. && -t < 0.8 && eta < 0.8) {
-                crs_INT = crs_lmlp.Eval_INT(s, Q2, t, -1., tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 2.); //the last argumen "1" is the sc_D
-                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.); //the last argumen "1" is the sc_D
+                crs_INT = crs_lmlp.Eval_INT(s, Q2, t, -1., tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 2.); //the last argument "1" is the sc_D
+                //crs_INT = crs_lmlp.Eval_INT( tcs_kin1.GetPhi_cm(), tcs_kin1.GetTheta_cm(), 1.); //the last argument "1" is the sc_D
             } else {
                 crs_INT = 0;
             }
 
+            TLorentzVector miss = beam + target - L_em - L_ep - L_nuc;
+
+            MM2 = miss.M2();
+            h_MM2->Fill(MM2);
+            
             tr1->Fill();
 
             //======================== Write LUND file ================================
@@ -256,11 +312,12 @@ int main(int argc, char** argv) {
             double px_ep = L_ep.Px();
             double py_ep = L_ep.Py();
             double pz_ep = L_ep.Pz();
-            double px_prot = L_prot.Px();
-            double py_prot = L_prot.Py();
-            double pz_prot = L_prot.Pz();
+            double px_nuc = L_nuc.Px();
+            double py_nuc = L_nuc.Py();
+            double pz_nuc = L_nuc.Pz();
             double vz = rand.Uniform(vz_min, vz_max);
             //double vz = 0.;
+
 
             //============= Write Header ===================
             out_dat << 3 << setw(5) << 1 << setw(5) << 1 << setw(5) << 0 << " " << setw(5) << "  " << psf << " " << setw(15) << 0 << setw(15)
@@ -268,16 +325,17 @@ int main(int argc, char** argv) {
             // =============== WWrite Particles ============
             //====== e- ======
             out_dat << 1 << setw(5) << -1 << setw(5) << 1 << setw(7) << 11 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_em << setw(15) << py_em << setw(15)
-                    << pz_em << setw(15) << L_em.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+                    << pz_em << setw(15) << L_em.E() << setw(5) << Me << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
             //====== e+ ======
             out_dat << 2 << setw(5) << +1 << setw(5) << 1 << setw(7) << -11 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_ep << setw(15) << py_ep << setw(15)
-                    << pz_ep << setw(15) << L_ep.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+                    << pz_ep << setw(15) << L_ep.E() << setw(5) << Me << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
-            //====== proton ======
-            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << 2212 << setw(5) << 0 << setw(5) << 0 << setw(15) << px_prot << setw(15) << py_prot << setw(15)
-                    << pz_prot << setw(15) << L_prot.E() << setw(5) << 0 << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
+            //====== nuc ======
+            out_dat << 3 << setw(5) << +1 << setw(5) << 1 << setw(7) << targetPID << setw(5) << 0 << setw(5) << 0 << setw(15) << px_nuc << setw(15) << py_nuc << setw(15)
+                    << pz_nuc << setw(15) << L_nuc.E() << setw(5) << M_nuc << setw(5) << 0 << setw(5) << 0 << setw(15) << vz << endl;
 
         } else {
+            i = i - 1;
             cout << " |t_min| > |t_lim|" << endl;
             cout << " t_min =  " << t_min << "   t_lim = " << t_lim << "  Eg = " << Eg << endl;
         }
@@ -286,7 +344,8 @@ int main(int argc, char** argv) {
     tr1->Write();
     h_ph_h_ph_cm1->Write();
     h_th_g_th_cm1->Write();
-
+    h_P_Fermi1->Write();
+    h_MM2->Write();
 
     file_out->Close();
 
